@@ -31,11 +31,12 @@
   .btn-text { background:transparent; color:var(--brass); font-size:11px; padding:0; }
   .btn-x { background:transparent; color:var(--ink-soft); font-size:11px; padding:4px; }
   .error { color:var(--danger); font-size:13px; margin-bottom:10px; }
-  .trends { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:28px; }
+  .trends { display:grid; grid-template-columns:1.6fr 1fr 1fr; gap:16px; margin-bottom:28px; }
   .trend-label { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); margin-bottom:10px; }
   .ledger-label { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); margin-bottom:10px; }
   .empty { padding:24px; text-align:center; color:var(--ink-soft); font-size:13px; }
   .entry { display:flex; gap:14px; padding:14px; background:var(--card); border:1px solid var(--line); margin-bottom:10px; }
+  .entry-thumb { width:64px; height:64px; object-fit:cover; border-radius:2px; border:1px solid var(--line); flex-shrink:0; }
   .entry-num { width:56px; flex-shrink:0; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--brass); padding-top:2px; }
   .entry-body { flex:1; min-width:0; }
   .entry-top { display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
@@ -47,7 +48,13 @@
   .memo-form { display:flex; gap:6px; margin-top:10px; }
   .memo-form input { flex:1; padding:6px 8px; font-size:12px; }
   .memo-form input.name { flex:none; width:120px; }
-  @media (max-width:560px) { .grid2 { grid-template-columns:1fr; } .trends { grid-template-columns:1fr; } .memo-form { flex-direction:column; } .memo-form input.name { width:100%; } }
+  @media (max-width:720px) { .trends { grid-template-columns:1fr; } }
+  .age-table { width:100%; border-collapse:collapse; font-family:'IBM Plex Mono',monospace; font-size:11px; }
+  .age-table th, .age-table td { text-align:right; padding:5px 6px; border-bottom:1px solid var(--line); }
+  .age-table th:first-child, .age-table td:first-child { text-align:left; color:var(--ink-soft); font-family:'Inter',sans-serif; font-size:12px; }
+  .age-table th { color:var(--ink-soft); font-weight:600; }
+  .age-table td.top { color:var(--brass); font-weight:600; }
+  @media (max-width:560px) { .grid2 { grid-template-columns:1fr; } .memo-form { flex-direction:column; } .memo-form input.name { width:100%; } }
 </style>
 </head>
 <body>
@@ -56,7 +63,7 @@
     <h1>Tour Log</h1>
     <span class="mono soft" id="count-badge">000 tours logged</span>
   </div>
-  <p class="lead">Log one entry per guided tour by hand — headcount, orientation, and any docent notes.</p>
+  <p class="lead">Log one entry per guided tour by hand — headcount, tour language, and any docent notes.</p>
   <p class="privacy">Saved to this browser only — nothing is sent anywhere.</p>
 
   <div class="card">
@@ -71,12 +78,25 @@
       <label class="field">Tour / installation name <input type="text" id="f-tourName" placeholder="e.g. Buckets of Fun" /></label>
       <label class="field">Docent <input type="text" id="f-docent" /></label>
       <label class="field">Headcount <input type="number" min="0" id="f-headcount" placeholder="e.g. 18" /></label>
-      <label class="field">Group orientation
-        <select id="f-orientation">
-          <option>Facing the artwork</option><option>Clustered around docent</option><option>Mixed / dispersed</option><option>Other</option>
+      <label class="field">Tour language
+        <select id="f-language">
+          <option>English</option><option>Cantonese</option><option>Putonghua</option>
+        </select>
+      </label>
+      <label class="field">Crowd density
+        <select id="f-density">
+          <option>Tight cluster</option><option>Comfortably spaced</option><option>Spread across the room</option>
+        </select>
+      </label>
+      <label class="field">Predominant age group
+        <select id="f-ageGroup">
+          <option>Mostly children</option><option>Mostly teens</option><option>Mostly young adults</option><option>Mostly adults</option><option>Mostly seniors</option><option>Mixed ages</option>
         </select>
       </label>
     </div>
+    <label class="field" style="margin-bottom:14px;">Group photo (optional)
+      <input type="file" accept="image/*" id="f-photo" />
+    </label>
     <label class="field" style="margin-bottom:14px;">Notes <textarea id="f-notes" rows="2" placeholder="Anything worth remembering about this tour…"></textarea></label>
     <div class="error" id="save-error" style="display:none;"></div>
     <button class="btn-primary" id="log-btn">Log tour</button>
@@ -91,6 +111,21 @@
       <div class="trend-label">BY GROUP TYPE</div>
       <svg id="bar-chart" viewBox="0 0 260 140" style="width:100%; height:140px;"></svg>
     </div>
+    <div class="card" style="margin-bottom:0;">
+      <div class="trend-label">BY CROWD DENSITY</div>
+      <svg id="bar-chart-density" viewBox="0 0 260 140" style="width:100%; height:140px;"></svg>
+    </div>
+  </div>
+
+  <div class="trends" id="trends2" style="display:none; grid-template-columns:1fr 1.4fr;">
+    <div class="card" style="margin-bottom:0;">
+      <div class="trend-label">VISITORS BY TOUR LANGUAGE</div>
+      <svg id="bar-chart-language" viewBox="0 0 260 140" style="width:100%; height:140px;"></svg>
+    </div>
+    <div class="card" style="margin-bottom:0;">
+      <div class="trend-label">AGE GROUP BY LANGUAGE (visitors)</div>
+      <div id="age-lang-table"></div>
+    </div>
   </div>
 
   <div class="ledger-label">LEDGER</div>
@@ -100,8 +135,33 @@
 <script>
   const STORAGE_KEY = "tour-log-entries";
   const GROUP_TYPES = ["School","Public","Members","Corporate","Family","Other"];
+  const DENSITIES = ["Tight cluster","Comfortably spaced","Spread across the room"];
+  const LANGUAGES = ["English","Cantonese","Putonghua"];
+  const AGE_GROUPS = ["Mostly children","Mostly teens","Mostly young adults","Mostly adults","Mostly seniors","Mixed ages"];
   let tours = [];
   let openMemoId = null;
+
+  function resizeImageFile(file, maxW=240, quality=0.6) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxW / img.width);
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
 
   function todayISO() { return new Date().toISOString().slice(0,10); }
   function genId() { return "t_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,7); }
@@ -121,8 +181,15 @@
     el.textContent = msg; el.style.display = msg ? "block" : "none";
   }
 
-  function logTour() {
+  async function logTour() {
     showError("");
+    const fileInput = document.getElementById("f-photo");
+    const file = fileInput.files[0];
+    let photo = null;
+    if (file) {
+      try { photo = await resizeImageFile(file); }
+      catch (e) { showError("Couldn't read that photo — entry saved without it."); }
+    }
     const record = {
       id: genId(),
       date: document.getElementById("f-date").value || todayISO(),
@@ -130,8 +197,11 @@
       groupType: document.getElementById("f-groupType").value,
       docent: document.getElementById("f-docent").value.trim(),
       headcount: document.getElementById("f-headcount").value === "" ? null : Number(document.getElementById("f-headcount").value),
-      orientation: document.getElementById("f-orientation").value,
+      language: document.getElementById("f-language").value,
+      density: document.getElementById("f-density").value,
+      ageGroup: document.getElementById("f-ageGroup").value,
       notes: document.getElementById("f-notes").value.trim(),
+      photo: photo,
       memos: [],
       createdAt: Date.now(),
     };
@@ -142,9 +212,11 @@
       document.getElementById("f-headcount").value = "";
       document.getElementById("f-notes").value = "";
       document.getElementById("f-date").value = todayISO();
+      fileInput.value = "";
       render();
     } else {
-      showError("Couldn't save that entry. Your browser storage may be full or disabled.");
+      showError("Couldn't save — browser storage may be full. Try removing an older photo, or log without one.");
+      tours.shift();
     }
   }
 
@@ -192,8 +264,8 @@
     svg.innerHTML = gridLines + `<path d="${path}" fill="none" stroke="#3B6E71" stroke-width="2" />` + dots;
   }
 
-  function drawBarChart(data) {
-    const svg = document.getElementById("bar-chart");
+  function drawBarChart(data, elId) {
+    const svg = document.getElementById(elId);
     if (data.length === 0) { svg.innerHTML = ""; return; }
     const w = 260, h = 140, rowH = h / data.length;
     const max = Math.max(...data.map(d => d.count), 1);
@@ -209,6 +281,23 @@
     svg.innerHTML = out;
   }
 
+  function renderAgeLangTable() {
+    const visitorsOf = (t) => (typeof t.headcount === "number" && !isNaN(t.headcount)) ? t.headcount : 0;
+    const rows = AGE_GROUPS.map(age => {
+      const cells = LANGUAGES.map(lang => tours.filter(t => t.language === lang && t.ageGroup === age).reduce((s,t)=>s+visitorsOf(t),0));
+      return { age, cells, total: cells.reduce((a,b)=>a+b,0) };
+    }).filter(r => r.total > 0);
+    const el = document.getElementById("age-lang-table");
+    if (rows.length === 0) { el.innerHTML = `<div style="font-size:12px; color:var(--ink-soft);">No headcount + age data yet.</div>`; return; }
+    const maxPerRow = rows.map(r => Math.max(...r.cells));
+    let html = `<table class="age-table"><thead><tr><th>Age group</th>${LANGUAGES.map(l=>`<th>${esc(l)}</th>`).join("")}</tr></thead><tbody>`;
+    rows.forEach((r,i) => {
+      html += `<tr><td>${esc(r.age)}</td>${r.cells.map(c => `<td class="${c===maxPerRow[i] && c>0 ? "top" : ""}">${c || "—"}</td>`).join("")}</tr>`;
+    });
+    html += `</tbody></table>`;
+    el.innerHTML = html;
+  }
+
   function render() {
     document.getElementById("count-badge").textContent = String(tours.length).padStart(3,"0") + " tours logged";
 
@@ -217,9 +306,17 @@
     document.getElementById("avg-label").textContent = "HEADCOUNT OVER TIME · avg " + avg;
     const trendData = [...withCount].sort((a,b)=> a.date > b.date ? 1 : -1);
     const typeCounts = GROUP_TYPES.map(g => ({ type:g, count: tours.filter(t=>t.groupType===g).length })).filter(x=>x.count>0);
+    const densityCounts = DENSITIES.map(d => ({ type:d, count: tours.filter(t=>t.density===d).length })).filter(x=>x.count>0);
     document.getElementById("trends").style.display = tours.length > 0 ? "grid" : "none";
     drawLineChart(trendData);
-    drawBarChart(typeCounts);
+    drawBarChart(typeCounts, "bar-chart");
+    drawBarChart(densityCounts, "bar-chart-density");
+
+    const visitorsOf = (t) => (typeof t.headcount === "number" && !isNaN(t.headcount)) ? t.headcount : 0;
+    const langCounts = LANGUAGES.map(l => ({ type:l, count: tours.filter(t=>t.language===l).reduce((s,t)=>s+visitorsOf(t),0) })).filter(x=>x.count>0);
+    document.getElementById("trends2").style.display = tours.length > 0 ? "grid" : "none";
+    drawBarChart(langCounts, "bar-chart-language");
+    renderAgeLangTable();
 
     const ledger = document.getElementById("ledger");
     if (tours.length === 0) {
@@ -248,13 +345,14 @@
 
       return `
         <div class="entry">
+          ${t.photo ? `<img class="entry-thumb" src="${t.photo}" alt="${esc(t.tourName)}" />` : ""}
           <div class="entry-num">${num}</div>
           <div class="entry-body">
             <div class="entry-top">
               <div class="serif" style="font-weight:600; font-size:15px;">${esc(t.tourName)}</div>
               ${headcountStr}
             </div>
-            <div class="entry-meta">${esc(t.date)} · ${esc(t.groupType)}${t.docent ? " · "+esc(t.docent) : ""}${t.orientation ? " · "+esc(t.orientation) : ""}</div>
+            <div class="entry-meta">${esc(t.date)} · ${esc(t.groupType)}${t.docent ? " · "+esc(t.docent) : ""}${t.language ? " · "+esc(t.language) : ""}${t.density ? " · "+esc(t.density) : ""}${t.ageGroup ? " · "+esc(t.ageGroup) : ""}</div>
             ${t.notes ? `<div class="entry-notes">${esc(t.notes)}</div>` : ""}
             ${memosHtml}
             ${memoForm}
