@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tour Log</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+  :root { --paper:#EDEAE2; --card:#FBFAF7; --ink:#1C1B19; --ink-soft:#5B564C; --brass:#9C7A3C; --sage:#4B5D52; --teal:#3B6E71; --line:#D8D2C4; --danger:#A24B3F; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Inter',sans-serif; background:var(--paper); color:var(--ink); padding:32px 20px; }
+  .wrap { max-width:920px; margin:0 auto; }
+  h1 { font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin:0; }
+  .serif { font-family:'Fraunces',serif; }
+  .mono { font-family:'IBM Plex Mono',monospace; }
+  .soft { color:var(--ink-soft); }
+  .header-row { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:4px; }
+  p.lead { font-size:14px; margin:4px 0 8px; max-width:620px; color:var(--ink-soft); }
+  p.privacy { font-family:'IBM Plex Mono',monospace; color:var(--sage); font-size:11px; margin:0 0 28px; }
+  .card { background:var(--card); border:1px solid var(--line); padding:20px; margin-bottom:28px; }
+  .card-title { font-family:'Fraunces',serif; font-size:15px; font-weight:600; margin-bottom:14px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+  label.field { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--ink-soft); }
+  input, select, textarea { font-family:'Inter',sans-serif; background:#fff; border:1px solid var(--line); color:var(--ink); padding:8px 10px; font-size:13px; }
+  input:focus, select:focus, textarea:focus { outline:2px solid var(--brass); outline-offset:1px; }
+  textarea { resize:vertical; }
+  button { font-family:'Inter',sans-serif; font-weight:600; cursor:pointer; border:none; border-radius:2px; transition:opacity .15s ease; }
+  button:hover { opacity:.82; }
+  .btn-primary { background:var(--brass); color:#fff; padding:10px 18px; font-size:13px; }
+  .btn-ghost { background:transparent; color:var(--ink-soft); border:1px solid var(--line); padding:5px 12px; font-size:11px; }
+  .btn-text { background:transparent; color:var(--brass); font-size:11px; padding:0; }
+  .btn-x { background:transparent; color:var(--ink-soft); font-size:11px; padding:4px; }
+  .error { color:var(--danger); font-size:13px; margin-bottom:10px; }
+  .trends { display:grid; grid-template-columns:2fr 1fr; gap:16px; margin-bottom:28px; }
+  .trend-label { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); margin-bottom:10px; }
+  .ledger-label { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); margin-bottom:10px; }
+  .empty { padding:24px; text-align:center; color:var(--ink-soft); font-size:13px; }
+  .entry { display:flex; gap:14px; padding:14px; background:var(--card); border:1px solid var(--line); margin-bottom:10px; }
+  .entry-num { width:56px; flex-shrink:0; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--brass); padding-top:2px; }
+  .entry-body { flex:1; min-width:0; }
+  .entry-top { display:flex; justify-content:space-between; gap:8px; align-items:baseline; }
+  .entry-meta { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-soft); margin:2px 0 6px; }
+  .entry-notes { font-size:13px; line-height:1.4; }
+  .memo { border-left:2px solid var(--line); padding-left:8px; display:flex; justify-content:space-between; gap:8px; margin-top:6px; }
+  .memo-author { font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--brass); }
+  .memo-text { font-size:12px; margin-left:6px; }
+  .memo-form { display:flex; gap:6px; margin-top:10px; }
+  .memo-form input { flex:1; padding:6px 8px; font-size:12px; }
+  .memo-form input.name { flex:none; width:120px; }
+  @media (max-width:560px) { .grid2 { grid-template-columns:1fr; } .trends { grid-template-columns:1fr; } .memo-form { flex-direction:column; } .memo-form input.name { width:100%; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header-row">
+    <h1>Tour Log</h1>
+    <span class="mono soft" id="count-badge">000 tours logged</span>
+  </div>
+  <p class="lead">Log one entry per guided tour by hand — headcount, orientation, and any docent notes.</p>
+  <p class="privacy">Saved to this browser only — nothing is sent anywhere.</p>
+
+  <div class="card">
+    <div class="card-title">New entry</div>
+    <div class="grid2">
+      <label class="field">Date <input type="date" id="f-date" /></label>
+      <label class="field">Group type
+        <select id="f-groupType">
+          <option>Public</option><option>School</option><option>Members</option><option>Corporate</option><option>Family</option><option>Other</option>
+        </select>
+      </label>
+      <label class="field">Tour / installation name <input type="text" id="f-tourName" placeholder="e.g. Buckets of Fun" /></label>
+      <label class="field">Docent <input type="text" id="f-docent" /></label>
+      <label class="field">Headcount <input type="number" min="0" id="f-headcount" placeholder="e.g. 18" /></label>
+      <label class="field">Group orientation
+        <select id="f-orientation">
+          <option>Facing the artwork</option><option>Clustered around docent</option><option>Mixed / dispersed</option><option>Other</option>
+        </select>
+      </label>
+    </div>
+    <label class="field" style="margin-bottom:14px;">Notes <textarea id="f-notes" rows="2" placeholder="Anything worth remembering about this tour…"></textarea></label>
+    <div class="error" id="save-error" style="display:none;"></div>
+    <button class="btn-primary" id="log-btn">Log tour</button>
+  </div>
+
+  <div class="trends" id="trends" style="display:none;">
+    <div class="card" style="margin-bottom:0;">
+      <div class="trend-label" id="avg-label">HEADCOUNT OVER TIME</div>
+      <svg id="line-chart" viewBox="0 0 500 140" style="width:100%; height:140px;"></svg>
+    </div>
+    <div class="card" style="margin-bottom:0;">
+      <div class="trend-label">BY GROUP TYPE</div>
+      <svg id="bar-chart" viewBox="0 0 260 140" style="width:100%; height:140px;"></svg>
+    </div>
+  </div>
+
+  <div class="ledger-label">LEDGER</div>
+  <div id="ledger"></div>
+</div>
+
+<script>
+  const STORAGE_KEY = "tour-log-entries";
+  const GROUP_TYPES = ["School","Public","Members","Corporate","Family","Other"];
+  let tours = [];
+  let openMemoId = null;
+
+  function todayISO() { return new Date().toISOString().slice(0,10); }
+  function genId() { return "t_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,7); }
+  function esc(s) { const d=document.createElement("div"); d.textContent = s ?? ""; return d.innerHTML; }
+
+  function load() {
+    try { const raw = localStorage.getItem(STORAGE_KEY); tours = raw ? JSON.parse(raw) : []; }
+    catch (e) { tours = []; }
+  }
+  function persist() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tours)); return true; }
+    catch (e) { return false; }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("save-error");
+    el.textContent = msg; el.style.display = msg ? "block" : "none";
+  }
+
+  function logTour() {
+    showError("");
+    const record = {
+      id: genId(),
+      date: document.getElementById("f-date").value || todayISO(),
+      tourName: document.getElementById("f-tourName").value.trim() || "Untitled tour",
+      groupType: document.getElementById("f-groupType").value,
+      docent: document.getElementById("f-docent").value.trim(),
+      headcount: document.getElementById("f-headcount").value === "" ? null : Number(document.getElementById("f-headcount").value),
+      orientation: document.getElementById("f-orientation").value,
+      notes: document.getElementById("f-notes").value.trim(),
+      memos: [],
+      createdAt: Date.now(),
+    };
+    tours.unshift(record);
+    sortTours();
+    if (persist()) {
+      document.getElementById("f-tourName").value = "";
+      document.getElementById("f-headcount").value = "";
+      document.getElementById("f-notes").value = "";
+      document.getElementById("f-date").value = todayISO();
+      render();
+    } else {
+      showError("Couldn't save that entry. Your browser storage may be full or disabled.");
+    }
+  }
+
+  function deleteTour(id) {
+    tours = tours.filter(t => t.id !== id);
+    persist(); render();
+  }
+
+  function sortTours() { tours.sort((a,b) => (a.date < b.date ? 1 : -1)); }
+
+  function addMemo(id) {
+    const nameInput = document.getElementById("memo-name-" + id);
+    const textInput = document.getElementById("memo-text-" + id);
+    const text = textInput.value.trim();
+    if (!text) return;
+    const t = tours.find(x => x.id === id);
+    if (!t) return;
+    t.memos = t.memos || [];
+    t.memos.push({ author: nameInput.value.trim() || "Anonymous", text, at: Date.now() });
+    openMemoId = null;
+    if (persist()) render(); else showError("Couldn't save that memo.");
+  }
+
+  function deleteMemo(id, at) {
+    const t = tours.find(x => x.id === id);
+    if (!t) return;
+    t.memos = (t.memos || []).filter(m => m.at !== at);
+    persist(); render();
+  }
+
+  function drawLineChart(data) {
+    const svg = document.getElementById("line-chart");
+    if (data.length === 0) { svg.innerHTML = ""; return; }
+    const w = 500, h = 140, pad = 24;
+    const max = Math.max(...data.map(d => d.headcount), 1);
+    const step = data.length > 1 ? (w - pad*2) / (data.length - 1) : 0;
+    const pts = data.map((d,i) => {
+      const x = pad + i*step;
+      const y = h - pad - (d.headcount / max) * (h - pad*2);
+      return [x,y];
+    });
+    const path = pts.map((p,i) => (i===0?"M":"L") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+    const dots = pts.map(p => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="#3B6E71" />`).join("");
+    const gridLines = [0,1,2,3].map(i => { const y = pad + i*(h-pad*2)/3; return `<line x1="${pad}" y1="${y}" x2="${w-pad}" y2="${y}" stroke="#D8D2C4" stroke-dasharray="2 4" />`; }).join("");
+    svg.innerHTML = gridLines + `<path d="${path}" fill="none" stroke="#3B6E71" stroke-width="2" />` + dots;
+  }
+
+  function drawBarChart(data) {
+    const svg = document.getElementById("bar-chart");
+    if (data.length === 0) { svg.innerHTML = ""; return; }
+    const w = 260, h = 140, rowH = h / data.length;
+    const max = Math.max(...data.map(d => d.count), 1);
+    const labelW = 64;
+    let out = "";
+    data.forEach((d,i) => {
+      const barMaxW = w - labelW - 8;
+      const barW = (d.count / max) * barMaxW;
+      const y = i * rowH + rowH*0.25;
+      out += `<text x="0" y="${y + rowH*0.3}" font-size="10" fill="#5B564C" font-family="IBM Plex Mono">${esc(d.type)}</text>`;
+      out += `<rect x="${labelW}" y="${y}" width="${barW.toFixed(1)}" height="${rowH*0.5}" fill="#4B5D52" rx="2" />`;
+    });
+    svg.innerHTML = out;
+  }
+
+  function render() {
+    document.getElementById("count-badge").textContent = String(tours.length).padStart(3,"0") + " tours logged";
+
+    const withCount = tours.filter(t => typeof t.headcount === "number" && !isNaN(t.headcount));
+    const avg = withCount.length ? (withCount.reduce((s,t)=>s+t.headcount,0)/withCount.length).toFixed(1) : "—";
+    document.getElementById("avg-label").textContent = "HEADCOUNT OVER TIME · avg " + avg;
+    const trendData = [...withCount].sort((a,b)=> a.date > b.date ? 1 : -1);
+    const typeCounts = GROUP_TYPES.map(g => ({ type:g, count: tours.filter(t=>t.groupType===g).length })).filter(x=>x.count>0);
+    document.getElementById("trends").style.display = tours.length > 0 ? "grid" : "none";
+    drawLineChart(trendData);
+    drawBarChart(typeCounts);
+
+    const ledger = document.getElementById("ledger");
+    if (tours.length === 0) {
+      ledger.innerHTML = `<div class="card empty">No tours logged yet. Add your first entry above.</div>`;
+      return;
+    }
+    ledger.innerHTML = tours.map((t,i) => {
+      const num = "T·" + String(tours.length - i).padStart(3,"0");
+      const headcountStr = (typeof t.headcount === "number" && !isNaN(t.headcount)) ? `<span class="mono" style="font-size:12px;">${t.headcount} visitors</span>` : "";
+      const memosHtml = (t.memos||[]).map(m => `
+        <div class="memo">
+          <div><span class="memo-author">${esc(m.author)}</span><span class="memo-text">${esc(m.text)}</span></div>
+          <button class="btn-x" onclick="deleteMemo('${t.id}', ${m.at})" title="Remove memo">✕</button>
+        </div>`).join("");
+      const memoForm = openMemoId === t.id ? `
+        <div class="memo-form" style="flex-direction:column;">
+          <div style="display:flex; gap:6px;">
+            <input class="name" type="text" id="memo-name-${t.id}" placeholder="Your name" />
+            <input type="text" id="memo-text-${t.id}" placeholder="Add a note for this tour…" onkeydown="if(event.key==='Enter') addMemo('${t.id}')" />
+          </div>
+          <div style="display:flex; gap:8px; margin-top:6px;">
+            <button class="btn-ghost" style="background:#4B5D52; color:#fff; border:none;" onclick="addMemo('${t.id}')">Save note</button>
+            <button class="btn-ghost" style="border:none;" onclick="closeMemo()">Cancel</button>
+          </div>
+        </div>` : `<button class="btn-text" onclick="openMemo('${t.id}')">+ Add memo</button>`;
+
+      return `
+        <div class="entry">
+          <div class="entry-num">${num}</div>
+          <div class="entry-body">
+            <div class="entry-top">
+              <div class="serif" style="font-weight:600; font-size:15px;">${esc(t.tourName)}</div>
+              ${headcountStr}
+            </div>
+            <div class="entry-meta">${esc(t.date)} · ${esc(t.groupType)}${t.docent ? " · "+esc(t.docent) : ""}${t.orientation ? " · "+esc(t.orientation) : ""}</div>
+            ${t.notes ? `<div class="entry-notes">${esc(t.notes)}</div>` : ""}
+            ${memosHtml}
+            ${memoForm}
+          </div>
+          <button class="btn-x" onclick="deleteTour('${t.id}')" title="Remove entry">✕</button>
+        </div>`;
+    }).join("");
+  }
+
+  function openMemo(id) { openMemoId = id; render(); setTimeout(() => { const el = document.getElementById("memo-text-"+id); if (el) el.focus(); }, 0); }
+  function closeMemo() { openMemoId = null; render(); }
+
+  document.getElementById("log-btn").addEventListener("click", logTour);
+  document.getElementById("f-date").value = todayISO();
+
+  load(); sortTours(); render();
+</script>
+</body>
+</html>
