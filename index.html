@@ -85,12 +85,12 @@
       </label>
       <label class="field">Crowd density
         <select id="f-density">
-          <option>Tight cluster</option><option>Comfortably spaced</option><option>Spread across the room</option>
+          <option>Tight cluster</option><option>Comfortably spaced</option><option>Spread across the room</option><option>Unknown / other</option>
         </select>
       </label>
       <label class="field">Predominant age group
         <select id="f-ageGroup">
-          <option>Mostly children</option><option>Mostly teens</option><option>Mostly young adults</option><option>Mostly adults</option><option>Mostly seniors</option><option>Mixed ages</option>
+          <option>Mostly children</option><option>Mostly teens</option><option>Mostly young adults</option><option>Mostly adults</option><option>Mostly seniors</option><option>Mixed ages</option><option>Unknown / other</option>
         </select>
       </label>
     </div>
@@ -135,9 +135,9 @@
 <script>
   const STORAGE_KEY = "tour-log-entries";
   const GROUP_TYPES = ["School","Public","Members","Corporate","Family","Other"];
-  const DENSITIES = ["Tight cluster","Comfortably spaced","Spread across the room"];
+  const DENSITIES = ["Tight cluster","Comfortably spaced","Spread across the room","Unknown / other"];
   const LANGUAGES = ["English","Cantonese","Putonghua"];
-  const AGE_GROUPS = ["Mostly children","Mostly teens","Mostly young adults","Mostly adults","Mostly seniors","Mixed ages"];
+  const AGE_GROUPS = ["Mostly children","Mostly teens","Mostly young adults","Mostly adults","Mostly seniors","Mixed ages","Unknown / other"];
   let tours = [];
   let openMemoId = null;
 
